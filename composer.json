@@ -1,0 +1,72 @@
+{
+    "name": "readfly/laravel",
+    "description": "Readfly Laravel Toolkit - Laravel 9-12 辅助开发工具集：脚手架、数据仓库、统一响应、异常处理与三方集成",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "toolkit",
+        "scaffold",
+        "repository",
+        "api",
+        "response"
+    ],
+    "authors": [
+        {
+            "name": "readfly"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Readfly\\Laravel\\": "src/"
+        },
+        "files": [
+            "functions/auth.php",
+            "functions/response.php",
+            "functions/projects.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Readfly\\Laravel\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": "^8.1",
+        "illuminate/cache": "^9.0|^10.0|^11.0|^12.0",
+        "illuminate/console": "^9.0|^10.0|^11.0|^12.0",
+        "illuminate/database": "^9.0|^10.0|^11.0|^12.0",
+        "illuminate/filesystem": "^9.0|^10.0|^11.0|^12.0",
+        "illuminate/http": "^9.0|^10.0|^11.0|^12.0",
+        "illuminate/support": "^9.0|^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "illuminate/events": "^9.0|^10.0|^11.0|^12.0",
+        "phpunit/phpunit": "^10.5"
+    },
+    "suggest": {
+        "intervention/image": "生成文字头像与图片水印（^3.0）",
+        "simplesoftwareio/simple-qrcode": "生成二维码（^2.0）",
+        "lustre/php-dfa-sensitive": "敏感词 DFA 过滤（^1.0）",
+        "overtrue/easy-sms": "阿里云短信发送（^2.0）"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Readfly\\Laravel\\LaravelToolkitServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "lint": "find src functions config -name '*.php' -print0 | xargs -0 -n1 php -l"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
