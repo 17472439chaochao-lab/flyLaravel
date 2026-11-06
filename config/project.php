@@ -44,6 +44,15 @@ return [
                     ],
                 ],
             ],
+            'oss' => [
+                'access_key_id' => '',
+                'access_key_secret' => '',
+                'bucket' => '',
+                'endpoint' => 'oss-cn-hangzhou.aliyuncs.com',
+                'domain' => '',
+                'is_cname' => false,
+                'visibility' => 'public',
+            ],
         ],
         'tencent' => [
             'wechat' => [

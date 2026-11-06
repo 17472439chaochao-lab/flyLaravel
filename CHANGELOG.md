@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.1 - 2026-11-06
+
+### 功能
+
+- 新增阿里云 OSS 上传封装：`AliyunProvider::oss()`，支持服务端上传、文件上传、删除、存在性、URL 与 PostObject 直传签名
+- 新增七牛云 OSS 上传封装：`QiniuProvider::oss()`，支持服务端上传、文件上传、删除、存在性、URL、私有空间下载签名与上传凭证
+- `toolkit:doctor` 增加 `aliyuncs/oss-sdk-php`、`qiniu/php-sdk` 可选依赖检查
+
+### 说明
+
+- `aliyuncs/oss-sdk-php`、`qiniu/php-sdk` 为可选依赖，缺失时抛出明确的安装提示
+
 ## 1.0.0
 
 首个公开发布版本。

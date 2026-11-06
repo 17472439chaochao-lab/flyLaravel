@@ -12,6 +12,7 @@
 - 统一响应结构（`state/code/msg/data/extras`），可选 `locale/consuming/request_id`
 - 真实可用的全局中间件：请求 ID、CORS 预检、异常统一 JSON 渲染、响应耗时
 - 微信（公众号 / 小程序）、抖音小程序、阿里云短信统一封装，可选依赖缺失时给出明确提示
+- 阿里云 OSS / 七牛云 OSS 上传统一封装：服务端上传、文件上传、删除、存在性、URL 与前端直传签名
 - 兼容 Laravel 9-12 的自动发现（package discovery）与手动注册
 
 ## 环境要求
@@ -226,16 +227,56 @@ throw BusinessException::make(Code::FORBIDDEN, '无权操作');
 ```php
 use Readfly\Laravel\Providers\WechatProvider;
 use Readfly\Laravel\Providers\AliyunProvider;
+use Readfly\Laravel\Providers\QiniuProvider;
 
 WechatProvider::officeAccount()->sendTemplate($uuid, $openId, $data, 'order_paid');
 WechatProvider::miniProgram()->code2Session($code);
 AliyunProvider::sms()->send('13800000000', ['code' => '123456'], 'authenticate');
 ```
 
+### 阿里云 OSS
+
+```php
+use Readfly\Laravel\Providers\AliyunProvider;
+
+$oss = AliyunProvider::oss();
+
+$oss->put('uploads/a.png', $content, ['content_type' => 'image/png']);
+$oss->putFile('uploads/a.png', '/tmp/a.png');
+$oss->exists('uploads/a.png');
+$oss->url('uploads/a.png');
+$oss->delete('uploads/a.png');
+
+// 前端 PostObject 直传凭证
+$policy = $oss->postPolicy('uploads/', 3600);
+// ['host' => ..., 'access_key_id' => ..., 'policy' => ..., 'signature' => ..., 'dir' => ..., 'expire_at' => ...]
+```
+
+配置位于 `config/project.php` 的 `3rd_passports.aliyun.oss`，`visibility` 为 `private` 时 `url()` 自动生成带签名的临时地址。
+
+### 七牛云 OSS
+
+```php
+use Readfly\Laravel\Providers\QiniuProvider;
+
+$oss = QiniuProvider::oss();
+
+$oss->put('uploads/a.png', $content);
+$oss->putFile('uploads/a.png', '/tmp/a.png');
+$oss->exists('uploads/a.png');
+$oss->url('uploads/a.png');
+$oss->delete('uploads/a.png');
+
+// 前端直传凭证
+$token = $oss->uploadToken('uploads/a.png', 3600);
+```
+
+配置位于 `config/project.php` 的 `3rd_passports.qiniu.default`，`visibility` 为 `private` 时 `url()` 自动生成私有空间下载地址。
+
 可选依赖（仅在调用对应功能时需要）：
 
 ```bash
-composer require intervention/image simplesoftwareio/simple-qrcode lustre/php-dfa-sensitive overtrue/easy-sms
+composer require intervention/image simplesoftwareio/simple-qrcode lustre/php-dfa-sensitive overtrue/easy-sms aliyuncs/oss-sdk-php qiniu/php-sdk
 ```
 
 ## 设计说明

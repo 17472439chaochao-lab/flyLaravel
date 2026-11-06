@@ -30,6 +30,8 @@ class DoctorCommand extends Command
             ['simple-qrcode', class_exists(\SimpleSoftwareIO\QrCode\Generator::class), 'composer require simplesoftwareio/simple-qrcode'],
             ['php-dfa-sensitive', class_exists(\DfaFilter\SensitiveHelper::class), 'composer require lustre/php-dfa-sensitive'],
             ['easy-sms', class_exists(\Overtrue\EasySms\EasySms::class), 'composer require overtrue/easy-sms'],
+            ['aliyun-oss', class_exists(\OSS\OssClient::class), 'composer require aliyuncs/oss-sdk-php'],
+            ['qiniu-sdk', class_exists(\Qiniu\Auth::class), 'composer require qiniu/php-sdk'],
         ];
 
         $rows = [];

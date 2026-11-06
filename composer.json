@@ -48,7 +48,9 @@
         "intervention/image": "生成文字头像与图片水印（^3.0）",
         "simplesoftwareio/simple-qrcode": "生成二维码（^2.0）",
         "lustre/php-dfa-sensitive": "敏感词 DFA 过滤（^1.0）",
-        "overtrue/easy-sms": "阿里云短信发送（^2.0）"
+        "overtrue/easy-sms": "阿里云短信发送（^2.0）",
+        "aliyuncs/oss-sdk-php": "阿里云 OSS 上传与直传签名（^2.6）",
+        "qiniu/php-sdk": "七牛云 OSS 上传与直传凭证（^7.0）"
     },
     "extra": {
         "laravel": {
