@@ -1,0 +1,46 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+          body: |
+            ## ${{ github.ref_name }}
+
+            首个公开发布版本。
+
+            ### 功能
+            - 脚手架命令：builder:laravel、builder:package、builder:interface、toolkit:doctor
+            - 字段定义 --fields，自动生成迁移字段、模型 cast、请求校验规则
+            - 数据仓库条件 DSL，全部使用参数绑定
+            - 统一响应结构、业务异常与 JSON 异常渲染
+            - 请求 ID、CORS 预检、异常处理中间件
+            - 微信 / 抖音 / 阿里云短信集成
+            - 头像、图片、二维码、Storage 文件、敏感词过滤工具
+
+            ### 兼容性
+            - PHP >= 8.1
+            - Laravel 9.x / 10.x / 11.x / 12.x
+            - 命名空间 `Readfly\Laravel`
+
+            ### 安装
+            ```bash
+            composer require readfly/laravel
+            ```
