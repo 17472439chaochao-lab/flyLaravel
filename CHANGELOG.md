@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.0.2 - 2026-11-07
+
+### 修复
+
+- 修复 `builder:package` 缺少 `model_class` 导致 Model、Repository、Migration 生成非法 PHP 的问题
+- 修复 `builder:interface` 使用点号拼接命名空间的问题
+- 生成 Controller 时自动注入对应 Request，确保请求校验规则生效
+- 路由文件、URI 和路由名纳入 dictionary，避免不同目录及 package/interface 互相覆盖
+- 迁移文件改为生成到 `database/migrations` 根目录
+- 修复 `enum` 单值生成、枚举值大小写、默认值序列化和引号/反斜杠转义问题
+- 增加 dictionary、索引字段、数据库连接、字符集、引擎等输入校验
+- 模板渲染后检测未替换占位符；生成前预检查全部模板，避免半成品文件
+- 发布到 `resources/toolkit/templates` 的自定义模板现在会被生成命令自动使用
+- `builder:package` 增加 `--no-migration`、`--no-cache`、`--no-controller`、`--no-request`
+- `toolkit:doctor` 区分必需检查与可选依赖，可选依赖缺失不再导致命令失败
+- `builder:laravel` 读取配置失败时不再清空配置文件，`--force` 会先备份原配置
+- 新增 Controller → Service → Repository 的基础 CRUD 串联，写操作接入 Hook 与可选 Cacher
+- 新增 `--class` / `--model` 类名覆盖、`--fields-file` 字段文件、`--dry-run` 预览
+- 新增 `--id=id|uuid|ulid`、`--collation`、`--no-timestamps`、`--soft-deletes`
+- 索引支持 `email+tenant_id` 联合索引语法
+- 新增 `--register-route` 自动注册路由、`--new-migration` 允许追加重复表迁移
+- 覆盖写入时自动生成 `.bak` 备份；重复 Migration 默认跳过
+- enum 校验改为 `Rule::in(...)`，修复引号内 `=` 被误判为默认值
+- Request 支持 update 场景去除必填约束
+- 字段定义支持第六段自定义校验规则，`--fields-file` 支持 JSON
+- 新增 `--fulltext` 全文索引、`--index-name` 自定义索引名和 `--foreign` 外键约束，自动生成基础 `belongsTo` 关联
+- 新增 `--middleware`、`--prefix`、`--route-name` 路由配置
+- 新增 PHPStan 静态分析与 `composer analyse`，补充 `illuminate/validation`、`ramsey/uuid` 运行时依赖
+- 新增命令级脚手架测试，实际生成文件并执行 `php -l`
+
 ## 1.0.1 - 2026-11-06
 
 ### 功能

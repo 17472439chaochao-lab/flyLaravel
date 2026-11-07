@@ -67,9 +67,20 @@ class LaravelToolkitServiceProvider extends ServiceProvider
     public static function templatePath(): string
     {
         $config = function_exists('config') ? config('toolkit.templates_path') : null;
-        $custom = is_string($config) && $config !== '' ? $config : null;
 
-        return $custom ?: Path::package('resources/templates');
+        if (is_string($config) && trim($config) !== '') {
+            return $config;
+        }
+
+        $published = function_exists('resource_path')
+            ? resource_path('toolkit/templates')
+            : Path::base('resources/toolkit/templates');
+
+        if (is_dir($published)) {
+            return $published;
+        }
+
+        return Path::package('resources/templates');
     }
 
     protected function templateTarget(): string

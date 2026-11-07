@@ -6,10 +6,11 @@ namespace Readfly\Laravel\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Readfly\Laravel\Console\Concerns\BuildsScaffoldContext;
 use Readfly\Laravel\Console\Concerns\InteractsWithScaffolding;
 use Readfly\Laravel\Console\StubRenderer;
-use Readfly\Laravel\Support\File;
+use RuntimeException;
 
 class InterfaceCommand extends Command
 {
@@ -20,9 +21,18 @@ class InterfaceCommand extends Command
         {name : 对应表名，不含表前缀，如：admins}
         {--desc= : 表注释，例如：管理员表}
         {--dictionary= : 目录，多层级请用 \\ 或 / 分隔，例如：api/v1}
+        {--class= : 生成类名，默认根据表名推导}
+        {--model= : 生成类名别名，等同于 --class}
         {--fields= : 字段定义，用于生成请求验证规则}
+        {--fields-file= : 从文件读取字段定义}
         {--request : 生成请求验证类}
         {--route : 生成路由片段}
+        {--middleware= : 路由中间件，多个用 | 分隔，如 auth:sanctum|throttle:60,1}
+        {--prefix= : 覆盖路由 URI 前缀}
+        {--route-name= : 覆盖路由名称前缀}
+        {--register-route : 将生成的路由片段注册到 routes/api.php}
+        {--dry-run : 只预览将生成的文件，不写入}
+        {--no-request : 不生成请求验证类}
         {--fcp : 覆盖已存在的文件}
         {--force : 等同于 --fcp}';
 
@@ -38,53 +48,60 @@ class InterfaceCommand extends Command
             return self::FAILURE;
         }
 
-        $context = $this->buildContext($name);
-        $renderer = new StubRenderer($this->templatePath());
-        $written = [];
+        try {
+            $context = $this->buildContext($name);
+            $renderer = new StubRenderer($this->templatePath());
+            $plan = $this->buildPlan($renderer, $context);
 
-        $files = [
-            ['interface_service.tpl', $context['service_path']],
-            ['interface_controller.tpl', $context['controller_path']],
-            ['interface_hook.tpl', $context['hook_path']],
-        ];
+            $rendered = [];
 
-        if ($context['has_request']) {
-            $files[] = ['request.tpl', $context['request_path']];
-        }
+            foreach ($plan as [$stub, $path]) {
+                $rendered[] = [$path, $renderer->render($stub, $context)];
+            }
 
-        foreach ($files as [$stub, $path]) {
-            if (! $renderer->exists($stub)) {
-                $this->error('缺少模板：'.$renderer->path($stub));
+            if ((bool) $this->option('dry-run')) {
+                foreach ($rendered as [$path]) {
+                    $this->line('将生成：'.$this->relativePath($path));
+                }
+
+                $this->info('dry-run：未写入任何文件。');
+
+                return self::SUCCESS;
+            }
+
+            $written = [];
+            $failed = 0;
+
+            foreach ($rendered as [$path, $content]) {
+                if ($this->writeFile($path, $content)) {
+                    $written[] = $path;
+                } else {
+                    $failed++;
+                }
+            }
+
+            if ($failed > 0) {
+                $this->error($failed.' 个文件写入失败。');
 
                 return self::FAILURE;
             }
+        } catch (InvalidArgumentException|RuntimeException $exception) {
+            $this->error($exception->getMessage());
 
-            if (! $this->shouldOverwrite($path, (bool) ($this->option('fcp') || $this->option('force')))) {
-                continue;
-            }
-
-            File::makeDirectory(dirname($path));
-
-            if ($this->writeFile($path, $renderer->render($stub, $context))) {
-                $written[] = $path;
-            }
-        }
-
-        if ($context['has_route']) {
-            File::makeDirectory(dirname($context['route_path']));
-
-            if ($this->shouldOverwrite($context['route_path'], (bool) ($this->option('fcp') || $this->option('force')))) {
-                if ($this->writeFile($context['route_path'], $renderer->render('interface_route.tpl', $context))) {
-                    $written[] = $context['route_path'];
-                }
-            }
+            return self::FAILURE;
         }
 
         $this->newLine();
         $this->info('已生成 '.count($written).' 个接口文件。');
 
         if ($context['has_route']) {
-            $this->warn('路由片段需手动引入：require base_path(\'routes/generated/'.$name.'.php\');');
+            if ((bool) $this->option('register-route')) {
+                if (! $this->registerRouteFile($context['route_path'])) {
+                    return self::FAILURE;
+                }
+            } elseif (in_array($context['route_path'], $written, true)) {
+                $this->warn('路由片段需手动引入：require base_path(\''.$this->relativePath($context['route_path']).'\');');
+            }
         }
 
         return self::SUCCESS;
@@ -93,18 +110,21 @@ class InterfaceCommand extends Command
     protected function buildContext(string $name): array
     {
         $desc = (string) ($this->option('desc') ?: $this->askOrDefault('请输入表注释名称（例如：管理员表）', Str::headline($name).'表'));
+        $desc = $this->sanitizeDocblock($desc);
         $dictionary = $this->normalizeDictionary((string) ($this->option('dictionary') ?: $this->askOrDefault('接口目录（多层级用 \\ 或 / 分隔，留空表示根目录）', '')));
 
         $fields = $this->scaffoldFields('是否现在定义请求字段？');
 
-        $caseName = Str::studly(Str::singular($name));
+        $classOption = trim((string) ($this->option('class') ?: $this->option('model') ?: ''));
+        $caseName = $classOption !== '' ? Str::studly($classOption) : Str::studly(Str::singular($name));
+
+        if ($caseName === '' || ! preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $caseName)) {
+            throw new InvalidArgumentException('无法从表名生成类名：'.$name);
+        }
         $dataName = trim((string) preg_replace('/表$/u', '', $desc));
         $dataName = $dataName !== '' ? $dataName : $desc;
 
-        $root = trim((string) config('toolkit.namespace.root', 'App'), '\\');
-        $interfaceNamespace = trim($root.'\\'.config('toolkit.namespace.interfaces', 'Interfaces').'.'.ltrim($dictionary, '\\'), '.\\');
-
-        $suffix = str_replace('\\', '/', $dictionary);
+        $interfaceNamespace = $this->namespaceWith('interfaces', 'Interfaces', $dictionary);
 
         return array_merge($this->authoringContext(), [
             'dictionary' => $dictionary,
@@ -118,19 +138,54 @@ class InterfaceCommand extends Command
             'service_namespace' => $interfaceNamespace.'\\Services',
             'controller_namespace' => $interfaceNamespace.'\\Controllers',
             'hook_namespace' => $interfaceNamespace.'\\Hooks',
-            'request_namespace' => trim($root.'\\'.config('toolkit.namespace.requests', 'Http\\Requests').($dictionary !== '' ? $dictionary : ''), '\\'),
-            'service_path' => app_path('Interfaces'.$suffix.'/Services/'.$caseName.'InterfaceService.php'),
-            'controller_path' => app_path('Interfaces'.$suffix.'/Controllers/'.$caseName.'Controller.php'),
-            'hook_path' => app_path('Interfaces'.$suffix.'/Hooks/'.$caseName.'Hook.php'),
-            'request_path' => app_path('Http/Requests'.$suffix.'/'.$caseName.'Request.php'),
-            'route_path' => base_path('routes/generated/'.$name.'.php'),
-            'rules_code' => ($rule_code = $this->ruleLines($fields)) !== '' ? $rule_code : '            // 使用 --fields 生成验证规则',
+            'request_namespace' => $this->namespaceWith('requests', 'Http\\Requests', $dictionary),
+            'service_path' => $this->appPathFor('interfaces', 'Interfaces', $dictionary, 'Services/'.$caseName.'InterfaceService.php'),
+            'controller_path' => $this->appPathFor('interfaces', 'Interfaces', $dictionary, 'Controllers/'.$caseName.'Controller.php'),
+            'hook_path' => $this->appPathFor('interfaces', 'Interfaces', $dictionary, 'Hooks/'.$caseName.'Hook.php'),
+            'request_path' => $this->appPathFor('requests', 'Http\\Requests', $dictionary, $caseName.'Request.php'),
+            'route_path' => $this->routePath($name, $dictionary, 'interface'),
+            'rules_code' => ($ruleCode = $this->ruleLines($fields)) !== '' ? $ruleCode : '            // 使用 --fields 生成验证规则',
+            'has_enum' => $this->hasEnum($fields),
             'attributes_code' => $this->attributeLines($fields),
-            'has_request' => (bool) ($this->option('request') || (! $this->input->isInteractive() && config('toolkit.default_builder.request', true))),
+            'has_request' => $this->wants('request', 'request', '是否生成请求验证类？', 'no-request'),
             'has_route' => (bool) $this->option('route'),
-            'route_uri' => str_replace('_', '-', $name),
-            'route_name' => str_replace('_', '.', $name),
+            'route_uri' => $this->routePrefix($name, $dictionary),
+            'route_name' => $this->routeNamePrefix($name, $dictionary, 'interface'),
+            'middleware_code' => $this->routeMiddlewareCode(),
         ]);
     }
 
+    protected function buildPlan(StubRenderer $renderer, array $context): array
+    {
+        $entries = [
+            ['interface_service.tpl', $context['service_path']],
+            ['interface_controller.tpl', $context['controller_path']],
+            ['interface_hook.tpl', $context['hook_path']],
+        ];
+
+        if ($context['has_request']) {
+            $entries[] = ['request.tpl', $context['request_path']];
+        }
+
+        if ($context['has_route']) {
+            $entries[] = ['interface_route.tpl', $context['route_path']];
+        }
+
+        $force = (bool) ($this->option('fcp') || $this->option('force') || $this->option('dry-run'));
+        $plan = [];
+
+        foreach ($entries as [$stub, $path]) {
+            if (! $renderer->exists($stub)) {
+                throw new RuntimeException('缺少模板：'.$renderer->path($stub));
+            }
+
+            if (! $this->shouldOverwrite($path, $force)) {
+                continue;
+            }
+
+            $plan[] = [$stub, $path];
+        }
+
+        return $plan;
+    }
 }

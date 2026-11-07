@@ -25,6 +25,10 @@ jobs:
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction --no-progress
       - name: Lint
-        run: find src functions config -name "*.php" -print0 | xargs -0 -n1 php -l
+        run: composer lint
+      - name: Render scaffold templates
+        run: composer render-check
+      - name: Static analysis
+        run: composer analyse
       - name: Run tests
         run: composer test

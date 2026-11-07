@@ -15,6 +15,7 @@ $context = [
     'data_name' => '用户信息',
     'db_connection' => 'mysql',
     'charset' => 'utf8mb4',
+    'collation' => 'utf8mb4_general_ci',
     'engine' => 'innodb',
     'fillable_code' => "        'name',\n        'email',",
     'casts_code' => "        'meta' => 'array',",
@@ -34,11 +35,32 @@ $context = [
     'attributes_code' => "            'name' => '名称',",
     'fields_code' => "            \$table->string('name', 64)->comment('名称');",
     'index_code' => "            \$table->index(['name']);",
+    'has_cache' => true,
     'cache_name' => 'api:users',
     'cache_expire' => 3600,
+    'cache_limit' => 100,
     'cache_driver' => 'file',
-    'route_uri' => 'users',
-    'route_name' => 'users',
+    'route_uri' => 'api/v1/users',
+    'route_name' => 'api.v1.users',
+    'middleware_code' => '',
+    'has_request' => true,
+    'has_fields' => true,
+    'has_enum' => true,
+    'fulltext_code' => '',
+    'foreign_code' => '',
+    'has_relations' => false,
+    'relations_code' => '',
+    'id_code' => "            \$table->increments('id')->comment('表ID');",
+    'id_type' => 'id',
+    'id_is_string' => false,
+    'id_is_integer' => true,
+    'id_php_type' => 'int',
+    'id_generation_code' => '',
+    'auto_timestamp_code' => 'true',
+    'has_timestamps' => true,
+    'has_soft_deletes' => false,
+    'timestamps_code' => "            \$table->timestamp('created_at')->nullable()->comment('创建时间');\n            \$table->timestamp('updated_at')->nullable()->comment('更新时间');",
+    'soft_deletes_code' => '',
     'service_class_interface' => 'UserInterfaceService',
     'author' => 'readfly',
     'author_email' => 'wucc513721@163.com',
@@ -66,7 +88,7 @@ $templates = [
 ];
 
 $renderer = new StubRenderer();
-$target = sys_get_temp_dir().'/toolkit-render';
+$target = sys_get_temp_dir().'/toolkit-render-'.bin2hex(random_bytes(4));
 File::makeDirectory($target);
 
 $interfaceContext = $context;
@@ -84,5 +106,15 @@ foreach ($templates as $stub => $file) {
     }
 
     File::put($target.'/'.$file, $content);
+
+    $output = [];
+    $code = 0;
+    exec(escapeshellarg(PHP_BINARY).' -l '.escapeshellarg($target.'/'.$file).' 2>&1', $output, $code);
+
+    if ($code !== 0) {
+        fwrite(STDERR, "LINT FAILED: {$file}\n".implode("\n", $output)."\n");
+        exit(1);
+    }
+
     echo "rendered: {$stub} -> {$target}/{$file}\n";
 }

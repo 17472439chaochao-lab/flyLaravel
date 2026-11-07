@@ -10,6 +10,9 @@
 namespace {{ request_namespace }};
 
 use Illuminate\Foundation\Http\FormRequest;
+{{#if has_enum}}
+use Illuminate\Validation\Rule;
+{{/if}}
 
 class {{ request_class }} extends FormRequest
 {
@@ -20,9 +23,17 @@ class {{ request_class }} extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
 {{ rules_code }}
         ];
+
+        if ($this->isMethod('put') || $this->isMethod('patch')) {
+            $rules = array_map(static function (array $fieldRules): array {
+                return array_values(array_filter($fieldRules, static fn (string $rule): bool => $rule !== 'required'));
+            }, $rules);
+        }
+
+        return $rules;
     }
 
     public function attributes(): array

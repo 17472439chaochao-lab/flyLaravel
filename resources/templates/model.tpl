@@ -10,12 +10,22 @@
 namespace {{ model_namespace }};
 
 use Readfly\Laravel\Modules\ModelModule;
+{{#if has_soft_deletes}}
+use Illuminate\Database\Eloquent\SoftDeletes;
+{{/if}}
+{{#if has_relations}}
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+{{/if}}
 
 /**
  * {{ table_comment }}
  */
 class {{ model_class }} extends ModelModule
 {
+{{#if has_soft_deletes}}
+    use SoftDeletes;
+
+{{/if}}
     protected $table = self::TABLE_NAME;
 
     protected $connection = '{{ db_connection }}';
@@ -24,8 +34,14 @@ class {{ model_class }} extends ModelModule
 
     public const DB_CONNECTION = '{{ db_connection }}';
 
-    public const AUTO_TIMESTAMP = true;
+    public const AUTO_TIMESTAMP = {{ auto_timestamp_code }};
 
+{{#if id_is_string}}
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
+{{/if}}
     protected $fillable = [
 {{ fillable_code }}
     ];
@@ -47,4 +63,8 @@ class {{ model_class }} extends ModelModule
 
     public const THEME_GROUPS = [
     ];
+
+{{#if has_relations}}
+{{ relations_code }}
+{{/if}}
 }

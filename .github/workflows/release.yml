@@ -24,18 +24,30 @@ jobs:
           body: |
             ## ${{ github.ref_name }}
 
-            新增阿里云 OSS 与七牛云 OSS 上传能力，完整变更见 CHANGELOG.md。
+            本版本重点修复脚手架生成链路，并补齐基础 CRUD、字段规则、外键关联、路由配置和工程化校验。完整变更见 CHANGELOG.md。
 
-            ### 本次新增
-            - 阿里云 OSS：AliyunProvider::oss()，服务端上传、文件上传、删除、存在性、URL 与 PostObject 直传签名
-            - 七牛云 OSS：QiniuProvider::oss()，服务端上传、文件上传、删除、存在性、URL、私有空间下载签名与上传凭证
-            - toolkit:doctor 增加 aliyuncs/oss-sdk-php、qiniu/php-sdk 可选依赖检查
-            - 可选 SDK 缺失时抛出明确的安装提示
+            ### 修复
+            - 修复 `builder:package` 生成 Model / Repository / Migration 时缺少模型类名的问题
+            - 修复 `builder:interface` 命名空间拼接错误
+            - 修复 enum 单值、大小写、默认值转义和引号内等号解析问题
+            - 修复 `builder:laravel` 缺少交互 trait 和配置读取保护的问题
+            - 修复未声明的 `illuminate/validation`、`ramsey/uuid` 运行时依赖
 
-            ### 兼容性
-            - PHP >= 8.1
-            - Laravel 9.x / 10.x / 11.x / 12.x
-            - 命名空间 `Readfly\Laravel`
+            ### 脚手架增强
+            - Controller → Service → Repository 基础 CRUD 串联，写操作接入 Hook 与 Cacher
+            - Request 自动注入，store/update 与 GET/DELETE 使用不同请求类型
+            - 支持 `--class` / `--model`、`--fields-file`（文本或 JSON）、`--dry-run`
+            - 支持 `--id=id|uuid|ulid`、`--no-timestamps`、`--soft-deletes`、`--collation`
+            - 支持联合索引、全文索引、自定义索引名和外键约束
+            - 外键自动生成基础 `belongsTo` 关联
+            - 支持路由中间件、URI 前缀、路由名覆盖和自动注册
+            - 覆盖文件自动备份，重复 Migration 默认跳过，支持 `--new-migration`
+
+            ### 工程化
+            - 新增命令级脚手架测试，实际生成文件并执行 `php -l`
+            - 新增 PHPStan 静态分析和 `composer analyse`
+            - 新增 `composer lint`、`composer render-check`
+            - 兼容 PHP >= 8.1，Laravel 9.x / 10.x / 11.x / 12.x
 
             ### 安装
             ```bash

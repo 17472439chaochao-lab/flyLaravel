@@ -1,0 +1,15 @@
+parameters:
+    level: 5
+    paths:
+        - src/Console
+        - src/Modules
+        - src/Support
+        - src/Http
+        - src/Tools
+        - src/Exceptions
+        - src/Contracts
+    bootstrapFiles:
+        - phpstan-bootstrap.php
+    scanFiles:
+        - phpstan-stubs.php
+    treatPhpDocTypesAsCertain: false

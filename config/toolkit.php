@@ -4,17 +4,22 @@ return [
 
     'database_prefix' => 's_',
     'database_charset' => 'utf8mb4',
+    'database_collation' => null,
     'database_engine' => 'innodb',
 
     'database_connection' => '__DEFAULT_DATABASE_CONNECTION__',
     'cache_driver' => '__DEFAULT_CACHE_DRIVER__',
     'app_version' => '__APP_VERSION__',
 
+    'templates_path' => null,
+
     'default_builder' => [
         'migration' => true,
         'data_cache' => true,
         'controller' => true,
         'request' => true,
+        'cache_expire' => 3600,
+        'cache_limit' => 100,
     ],
 
     'author' => 'readfly',

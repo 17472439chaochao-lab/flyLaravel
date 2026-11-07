@@ -53,4 +53,20 @@ class StubRendererTest extends TestCase
         $this->assertStringNotContainsString('ALWAYS', $content);
         $this->assertStringContainsString('Hello X!', $content);
     }
+
+    public function test_unresolved_placeholder_is_rejected(): void
+    {
+        File::put($this->directory.'/unresolved.tpl', 'Hello {{ missing }}');
+
+        $this->expectException(\RuntimeException::class);
+
+        (new StubRenderer($this->directory))->render('unresolved.tpl', ['name' => 'X']);
+    }
+
+    public function test_missing_stub_is_rejected(): void
+    {
+        $this->expectException(\RuntimeException::class);
+
+        (new StubRenderer($this->directory))->render('missing.tpl', []);
+    }
 }

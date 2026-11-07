@@ -37,7 +37,12 @@ class {{ cache_class }} extends CacheModule
         }
 
         $repository = new {{ repository_class }}();
-        $data = [];
+        $data = $repository->lists([], ['*'], [], ['id' => 'desc'], '', 1, {{ cache_limit }})['lists'];
+
+        if (! is_array($data)) {
+            $data = [];
+        }
+
         $this->write($data);
 
         return $data;

@@ -50,6 +50,7 @@ class RepositoryModuleTest extends TestCase
             $table->integer('age')->default(0);
             $table->string('email')->nullable();
             $table->text('meta')->nullable();
+            $table->timestamp('deleted_at')->nullable();
             $table->timestamps();
         });
 
@@ -146,5 +147,19 @@ class RepositoryModuleTest extends TestCase
 
         $this->assertSame(1, $this->repository->count(['name' => '张三']));
         $this->assertSame(20, $this->repository->find(['name' => '张三'], 'age'));
+    }
+
+    public function test_insert_without_returning_id(): void
+    {
+        $this->assertTrue($this->repository->insert(['name' => '直接插入', 'age' => 9]));
+        $this->assertTrue($this->repository->exists(['name' => '直接插入']));
+    }
+
+    public function test_soft_delete_sets_deleted_at(): void
+    {
+        $id = $this->repository->insertGetId(['name' => '待删除', 'age' => 1]);
+
+        $this->assertSame(1, $this->repository->softDelete(['id' => $id]));
+        $this->assertNotNull($this->repository->find(['id' => $id], 'deleted_at'));
     }
 }

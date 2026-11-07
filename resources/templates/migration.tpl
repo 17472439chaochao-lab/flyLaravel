@@ -18,16 +18,26 @@ return new class extends Migration
     {
         Schema::connection({{ model_class }}::DB_CONNECTION)->create({{ model_class }}::TABLE_NAME, function (Blueprint $table) {
             $table->charset = '{{ charset }}';
-            $table->collation = '{{ charset }}_general_ci';
+            $table->collation = '{{ collation }}';
             $table->engine = '{{ engine }}';
 
-            $table->increments('id')->comment('表ID');
+{{ id_code }}
 {{ fields_code }}
 
-            $table->timestamp('created_at')->nullable()->comment('创建时间');
-            $table->timestamp('updated_at')->nullable()->comment('更新时间');
+{{#if has_timestamps}}
+{{ timestamps_code }}
+{{/if}}
+{{#if has_soft_deletes}}
+{{ soft_deletes_code }}
+{{/if}}
 {{#if index_code}}
 {{ index_code }}
+{{/if}}
+{{#if fulltext_code}}
+{{ fulltext_code }}
+{{/if}}
+{{#if foreign_code}}
+{{ foreign_code }}
 {{/if}}
         });
     }

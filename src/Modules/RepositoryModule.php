@@ -162,6 +162,11 @@ class RepositoryModule
         return $this->normalizeResult($query->get($fields));
     }
 
+    public function insert(array $data): bool
+    {
+        return $this->model()->newQuery()->insert($this->prepareData($data, true));
+    }
+
     public function insertGetId(array $data): mixed
     {
         return $this->model()->newQuery()->insertGetId($this->prepareData($data, true));
@@ -199,6 +204,18 @@ class RepositoryModule
     public function delete(array $conditions): mixed
     {
         return $this->applyConditions($this->model()->newQuery(), $conditions)->delete();
+    }
+
+    public function softDelete(array $conditions): mixed
+    {
+        $now = date('Y-m-d H:i:s');
+        $data = ['deleted_at' => $now];
+
+        if ($this->auto_timestamp) {
+            $data['updated_at'] = $now;
+        }
+
+        return $this->applyConditions($this->model()->newQuery(), $conditions)->update($data);
     }
 
     public function count(array $conditions = [], array $joins = [], string $group = ''): int

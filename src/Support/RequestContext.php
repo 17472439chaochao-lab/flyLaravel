@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Readfly\Laravel\Support;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 final class RequestContext
 {
@@ -28,7 +27,7 @@ final class RequestContext
         }
 
         $header = (string) config('toolkit.middleware.request_id.header', 'X-Request-Id');
-        $id = (string) ($request->header($header) ?: Str::uuid()->toString());
+        $id = (string) ($request->header($header) ?: bin2hex(random_bytes(16)));
         $request->attributes->set(self::ATTRIBUTE_REQUEST_ID, $id);
 
         return $id;

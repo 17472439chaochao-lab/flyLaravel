@@ -9,6 +9,7 @@ use Readfly\Laravel\Support\ResponsePayload;
 use RuntimeException;
 use Throwable;
 
+/** @phpstan-consistent-constructor */
 class BusinessException extends RuntimeException
 {
     protected mixed $data;

@@ -8,11 +8,14 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
+use Readfly\Laravel\Console\Concerns\InteractsWithScaffolding;
 use Readfly\Laravel\Support\File;
 use Throwable;
 
 class InitCommand extends Command
 {
+    use InteractsWithScaffolding;
+
     protected $signature = 'builder:laravel
         {--domain= : 项目默认域名，例如 api.example.com}
         {--force : 强制重新生成密钥}
@@ -37,10 +40,22 @@ class InitCommand extends Command
         }
 
         $domain = (string) ($this->option('domain') ?: $this->askOrDefault('请输入当前项目默认域名，如：domain.com', 'domain.com'));
+
+        if (! preg_match('/^[A-Za-z0-9._:-]+$/', $domain)) {
+            $this->error('域名格式不合法：'.$domain);
+
+            return self::FAILURE;
+        }
+
         $force = (bool) $this->option('force');
 
-        $this->prepareProjectConfig($projectPath, $domain, $force);
-        $this->prepareToolkitConfig($toolkitPath);
+        if (! $this->prepareProjectConfig($projectPath, $domain, $force)) {
+            return self::FAILURE;
+        }
+
+        if (! $this->prepareToolkitConfig($toolkitPath, $force)) {
+            return self::FAILURE;
+        }
 
         if (! $this->option('no-link')) {
             try {
@@ -57,32 +72,59 @@ class InitCommand extends Command
         return self::SUCCESS;
     }
 
-    protected function prepareProjectConfig(string $path, string $domain, bool $force): void
+    protected function prepareProjectConfig(string $path, string $domain, bool $force): bool
     {
-        $content = (string) file_get_contents($path);
+        $content = File::get($path);
 
-        if (! $force && ! Str::contains($content, ['__APP_KEY__', '__APP_SECRET__', '__AES_IV__', '__AES_ENCRYPT_KEY__', 'domain.com'])) {
+        if ($content === null) {
+            $this->error('配置文件读取失败：'.$path);
+
+            return false;
+        }
+
+        if (! $force && ! Str::contains($content, ['__APP_KEY__', '__APP_SECRET__', '__AES_IV__', '__AES_ENCRYPT_KEY__'])) {
             $this->warn('project.php 已初始化，跳过。如需重新生成密钥请加 --force');
 
-            return;
+            return true;
+        }
+
+        if ($force && ! $this->backup($path)) {
+            return false;
         }
 
         $replacements = [
             '// __DEFAULT_USE_USAGE__' => '',
             'domain.com' => $domain,
             '__APP_KEY__' => 'AK'.date('Ymd').Str::upper(Str::random(10)),
-            '__APP_SECRET__' => Str::upper(hash('sha256', Str::uuid()->toString().Str::random(16))),
+            '__APP_SECRET__' => Str::upper(hash('sha256', Str::random(32))),
             '__AES_IV__' => Str::upper(Str::random(16)),
             '__AES_ENCRYPT_KEY__' => Str::upper(Str::random(32)),
         ];
 
-        File::put($path, str_replace(array_keys($replacements), array_values($replacements), $content));
+        if (! File::put($path, str_replace(array_keys($replacements), array_values($replacements), $content), true)) {
+            $this->error('配置文件写入失败：'.$path);
+
+            return false;
+        }
+
         $this->info('已写入签名与 AES 密钥：config/project.php');
+
+        return true;
     }
 
-    protected function prepareToolkitConfig(string $path): void
+    protected function prepareToolkitConfig(string $path, bool $force = false): bool
     {
-        $content = (string) file_get_contents($path);
+        $content = File::get($path);
+
+        if ($content === null) {
+            $this->error('配置文件读取失败：'.$path);
+
+            return false;
+        }
+
+        if ($force && ! $this->backup($path)) {
+            return false;
+        }
 
         $replacements = [
             '__DEFAULT_DATABASE_CONNECTION__' => (string) $this->config->get('database.default', 'mysql'),
@@ -90,6 +132,27 @@ class InitCommand extends Command
             '__APP_VERSION__' => (string) random_int(10000, 99999),
         ];
 
-        File::put($path, str_replace(array_keys($replacements), array_values($replacements), $content));
+        if (! File::put($path, str_replace(array_keys($replacements), array_values($replacements), $content), true)) {
+            $this->error('配置文件写入失败：'.$path);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function backup(string $path): bool
+    {
+        $backup = $path.'.'.date('YmdHis').'.bak';
+
+        if (! File::copy($path, $backup)) {
+            $this->error('配置备份失败：'.$backup);
+
+            return false;
+        }
+
+        $this->info('已备份原配置：'.basename($backup));
+
+        return true;
     }
 }
