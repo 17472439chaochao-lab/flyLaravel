@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.0.3 - 2026-11-07
+
+### 修复
+
+- 修复 `RepositoryModule` 对 Carbon / `DateTimeInterface` 值进行 JSON 编码，导致模型 `datetime` cast 解析失败的问题
+- 修复 Laravel 12 `FormRequest` 校验异常未进入统一响应结构的问题，改由 ServiceProvider 注册异常渲染器
+- 完善 `builder:laravel` 配置初始化与运行时依赖声明
+
+### 功能
+
+- 新增可选 AES-256-GCM payload 加密传输
+- 新增 `PayloadCipher` 加解密器与 `EncryptedPayloadMiddleware`
+- 支持 GET 查询参数、JSON 请求体、JSON 响应加密
+- 前端可使用 Web Crypto API 对接，示例见本地 `website/` 测试项目
+
+### 工程化
+
+- 增加 PayloadCipher 回归测试
+- 根包测试增至 77 个测试、360 个断言
+- 本地 website 测试通过：5 个 Feature 测试、41 个断言
+
 ## 1.0.2 - 2026-11-07
 
 ### 修复

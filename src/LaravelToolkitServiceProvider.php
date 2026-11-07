@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Readfly\Laravel;
 
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\ValidationException;
+use Readfly\Laravel\Http\ApiResponse;
 use Readfly\Laravel\Console\Commands\DoctorCommand;
 use Readfly\Laravel\Console\Commands\InitCommand;
 use Readfly\Laravel\Console\Commands\InterfaceCommand;
 use Readfly\Laravel\Console\Commands\PackageCommand;
+use Readfly\Laravel\Support\Code;
 use Readfly\Laravel\Support\File;
 use Readfly\Laravel\Support\Path;
 
@@ -32,6 +36,33 @@ class LaravelToolkitServiceProvider extends ServiceProvider
         $this->publishConfiguration();
         $this->publishRuntimeFiles();
         $this->ensureAvatars();
+        $this->registerExceptionRenderer();
+    }
+
+    protected function registerExceptionRenderer(): void
+    {
+        if (! $this->app->bound(ExceptionHandler::class)) {
+            return;
+        }
+
+        $handler = $this->app->make(ExceptionHandler::class);
+
+        if (! is_object($handler) || ! method_exists($handler, 'renderable')) {
+            return;
+        }
+
+        call_user_func([$handler, 'renderable'], static function (ValidationException $exception, mixed $request) {
+            $expectsJson = is_object($request) && method_exists($request, 'expectsJson') && $request->expectsJson();
+            $isApi = is_object($request) && method_exists($request, 'is') && $request->is('api/*');
+
+            if (! $expectsJson && ! $isApi) {
+                return null;
+            }
+
+            return ApiResponse::error(Code::VALIDATE_FAILED, $exception->getMessage(), [], [
+                'validations' => $exception->errors(),
+            ]);
+        });
     }
 
     protected function publishAssets(): void

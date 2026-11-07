@@ -51,6 +51,7 @@ class RepositoryModuleTest extends TestCase
             $table->string('email')->nullable();
             $table->text('meta')->nullable();
             $table->timestamp('deleted_at')->nullable();
+            $table->timestamp('published_at')->nullable();
             $table->timestamps();
         });
 
@@ -161,5 +162,19 @@ class RepositoryModuleTest extends TestCase
 
         $this->assertSame(1, $this->repository->softDelete(['id' => $id]));
         $this->assertNotNull($this->repository->find(['id' => $id], 'deleted_at'));
+    }
+
+    public function test_date_time_values_are_formatted_not_json_encoded(): void
+    {
+        $id = $this->repository->insertGetId([
+            'name' => '时间测试',
+            'age' => 1,
+            'published_at' => new \DateTimeImmutable('2026-01-02 03:04:05'),
+        ]);
+
+        $this->assertSame(
+            '2026-01-02 03:04:05',
+            $this->repository->find(['id' => $id], 'published_at')
+        );
     }
 }

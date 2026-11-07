@@ -640,10 +640,10 @@ class RepositoryModule
         }
 
         foreach ($data as $field => $value) {
-            if (is_array($value) || $value instanceof \JsonSerializable) {
-                $data[$field] = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            } elseif ($value instanceof \DateTimeInterface) {
+            if ($value instanceof \DateTimeInterface) {
                 $data[$field] = $value->format('Y-m-d H:i:s');
+            } elseif (is_array($value) || $value instanceof \JsonSerializable) {
+                $data[$field] = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             } elseif (is_bool($value)) {
                 $data[$field] = (int) $value;
             }

@@ -13,6 +13,12 @@ return [
 
     'templates_path' => null,
 
+    'payload_encryption' => [
+        'enabled' => false,
+        'header' => 'X-Payload-Encrypted',
+        'key' => null,
+    ],
+
     'default_builder' => [
         'migration' => true,
         'data_cache' => true,

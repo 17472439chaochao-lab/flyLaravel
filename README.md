@@ -207,6 +207,39 @@ php artisan toolkit:doctor
 
 检查 PHP 版本、扩展、配置发布、storage 权限、头像资源与可选依赖。可选依赖缺失只影响对应功能，不会让命令失败。
 
+## Payload 加密
+
+脚手架提供可选的 AES-256-GCM payload 加密中间件，默认关闭。
+
+`config/toolkit.php`：
+
+```php
+'payload_encryption' => [
+    'enabled' => false,
+    'header' => 'X-Payload-Encrypted',
+    'key' => null, // 为空时回退 project.aes.encrypt_key
+],
+```
+
+Laravel 11/12 注册方式（建议放在 BasicLaravelMiddleware 外层）：
+
+```php
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->prepend(\Readfly\Laravel\Http\Middleware\EncryptedPayloadMiddleware::class);
+    $middleware->append(\Readfly\Laravel\Http\Middleware\BasicLaravelMiddleware::class);
+})
+```
+
+启用后：
+
+- 请求头带 `X-Payload-Encrypted: 1`
+- 请求体为 `{"payload":"base64(nonce + tag + ciphertext)"}`
+- 响应为 `{"encrypted":true,"payload":"base64(...)"}`
+- 支持 GET 查询参数、POST/PUT/PATCH/DELETE JSON body
+- 服务端使用 `Readfly\Laravel\Support\PayloadCipher` 加解密
+
+注意：应用层加密不能替代 HTTPS。前端静态密钥只能作为传输层的额外防护，不应视为真正的密钥保密方案；生产环境必须启用 TLS。
+
 ## 数据仓库
 
 ```php
@@ -342,6 +375,10 @@ composer require intervention/image simplesoftwareio/simple-qrcode lustre/php-df
 - 脚手架直接生成迁移文件，不依赖解析 `artisan` 输出
 - 模板可通过 `vendor:publish --tag=toolkit-stubs` 发布到 `resources/toolkit/templates`，生成命令会优先使用已发布模板；也可通过 `toolkit.templates_path` 显式指定。升级后如果已有旧模板，需要重新发布或手动同步
 - 所有 CLI 输入在写入代码前都会校验；字典、索引、字段名不会直接拼接成非法 PHP
+
+## 示例项目
+
+`website/` 目录包含一个 Laravel 12 + Vue 3 官网测试站点，使用本地 Composer path repository 引入当前脚手架，覆盖 CRUD、Request、软删除、ULID、外键、索引、缓存、路由注册和 Interface 脚手架。启动方式与测试记录见 `website/README.md` 和 `website/SCAFFOLD_TEST_REPORT.md`。
 
 ## 测试
 
